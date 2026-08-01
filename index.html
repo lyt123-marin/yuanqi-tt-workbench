@@ -735,24 +735,6 @@ function viewExpense() {
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <span class="emoji">📍</span>
-        <span class="card-title">支付渠道分布</span>
-      </div>
-      ${channels.map(([ch, amt]) => {
-        const pct = budgetUsed > 0 ? (amt / budgetUsed * 100) : 0;
-        const chIcon = ch === '微信' ? '💚' : ch === '支付宝' ? '💙' : ch === '现金' ? '💵' : '💳';
-        return `
-        <div class="stat-row" style="margin:4px 0;">
-          <span class="lbl">${chIcon} ${ch}</span>
-          <span class="val">¥${amt.toFixed(2)} (${pct.toFixed(0)}%)</span>
-        </div>
-        <div class="progress" style="height:6px; margin:2px 0 6px;"><div class="progress-bar" style="width:${pct}%;"></div></div>
-        `;
-      }).join('')}
-    </div>
-
     ${maxItem ? `
     <div class="card" style="background:linear-gradient(135deg, #FFF5F6 0%, #FFFFFF 100%);">
       <div class="card-header">
@@ -815,27 +797,45 @@ function bindExpense() {
 }
 function addExpense() {
   const todayStr = fmtDate(Date.now());
-  openModal('补录一笔开销', `
-    <div class="form-row">
-      <input class="input" id="ef-amount" type="number" step="0.01" placeholder="¥ 金额" style="flex:0 0 40%;">
-      <select class="select" id="ef-cat">
-        <option>🍱 餐饮</option><option>🚇 交通</option><option>🛍️ 购物</option>
-        <option>🎬 娱乐</option><option>🏠 居住</option><option>💊 医疗</option>
-        <option>📚 学习</option><option>🎁 礼物</option><option>📦 其他</option>
+  const quickAmounts = [5, 10, 15, 20, 30, 50, 100];
+  const cats = [
+    {icon:'🍱', name:'餐饮'}, {icon:'🚇', name:'交通'}, {icon:'🛍️', name:'购物'},
+    {icon:'🎬', name:'娱乐'}, {icon:'🏠', name:'居住'}, {icon:'💊', name:'医疗'},
+    {icon:'📚', name:'学习'}, {icon:'🎁', name:'礼物'}, {icon:'📦', name:'其他'}
+  ];
+  openModal('快速记一笔', `
+    <input class="input" id="ef-amount" type="number" step="0.01" placeholder="¥ 输入金额" style="font-size:20px; text-align:center; font-weight:700; padding:14px;">
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+      ${quickAmounts.map(a => `<button type="button" class="chip" style="font-size:13px; padding:6px 14px; cursor:pointer;" onclick="document.getElementById('ef-amount').value=${a}">¥${a}</button>`).join('')}
+    </div>
+    <div class="section-title" style="margin-top:12px;">选择品类</div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+      ${cats.map((c, i) => `
+        <button type="button" id="cat-btn-${i}" class="cat-pick" style="border:1.5px solid var(--card-border); background:#fff; border-radius:12px; padding:10px 4px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;" onclick="pickCat(${i})">
+          <span style="font-size:22px;">${c.icon}</span>
+          <span style="font-size:11px; color:var(--text-2);">${c.name}</span>
+        </button>
+      `).join('')}
+    </div>
+    <input type="hidden" id="ef-cat-val" value="餐饮">
+    <div class="form-row" style="margin-top:10px;">
+      <input class="input" id="ef-note" placeholder="备注 (选填, 如: 午餐 兰州拉面)">
+      <input class="input" id="ef-date" type="date" value="${todayStr}" style="flex:0 0 45%;">
+    </div>
+    <div class="form-row" style="margin-top:8px;">
+      <select class="select" id="ef-ch" style="flex:0 0 45%;">
+        <option>微信</option><option>支付宝</option><option>现金</option><option>其他</option>
       </select>
     </div>
-    <div class="form-row">
-      <select class="select" id="ef-ch">
-        <option>💚 微信</option><option>💙 支付宝</option><option>💵 现金</option><option>💳 其他</option>
-      </select>
-      <input class="input" id="ef-date" type="date" value="${todayStr}">
-    </div>
-    <input class="input" id="ef-note" placeholder="备注说明 (如：午餐 兰州拉面)" style="margin-top:8px;">
+    <style>
+      .cat-pick.active { border-color: var(--pink-400) !important; background: var(--pink-50) !important; }
+      .cat-pick.active span:last-child { color: var(--pink-600) !important; font-weight:600; }
+    </style>
   `, () => {
     const amount = parseFloat(document.getElementById('ef-amount').value);
-    if (!amount || amount <= 0) { alert('请输入有效金额'); return false; }
-    const cat = (document.getElementById('ef-cat').value || '其他').replace(/^[^\u4e00-\u9fa5]+/, '').trim();
-    const ch = (document.getElementById('ef-ch').value || '其他').replace(/^[^\u4e00-\u9fa5]+/, '').trim();
+    if (!amount || amount <= 0) { alert('请输入金额'); return false; }
+    const cat = document.getElementById('ef-cat-val').value;
+    const ch = document.getElementById('ef-ch').value;
     const dateStr = document.getElementById('ef-date').value;
     const time = dateStr ? new Date(dateStr + 'T' + new Date().getHours() + ':' + String(new Date().getMinutes()).padStart(2,'0')).getTime() : Date.now();
     DATA.expenses.unshift({
@@ -846,6 +846,15 @@ function addExpense() {
     });
     save(); renderMain(); return true;
   });
+  // 默认选中第一个品类
+  setTimeout(() => pickCat(0), 50);
+}
+function pickCat(i) {
+  const cats = ['餐饮','交通','购物','娱乐','居住','医疗','学习','礼物','其他'];
+  document.querySelectorAll('.cat-pick').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('cat-btn-' + i);
+  if (btn) btn.classList.add('active');
+  document.getElementById('ef-cat-val').value = cats[i];
 }
 function delExpense(id) {
   if (!confirm('删除此条记录？')) return;
