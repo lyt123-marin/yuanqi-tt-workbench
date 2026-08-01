@@ -427,9 +427,9 @@ const STORE_KEY = 'yuanqi_workbench_v1';
 const defaultData = {
   activeNav: 'expense',
   expenses: [
-    { id: 1, time: Date.now() - 3600000, amount: 28.5, channel: '微信', category: '餐饮', note: '午餐 兰州拉面' },
+    { id: 1, time: Date.now() - 3600000, amount: 28.5, channel: '微信', category: '餐饮', note: '午餐' },
     { id: 2, time: Date.now() - 7200000, amount: 6, channel: '支付宝', category: '交通', note: '地铁' },
-    { id: 3, time: Date.now() - 10800000, amount: 12.8, channel: '微信', category: '餐饮', note: '早餐 包子豆浆' }
+    { id: 3, time: Date.now() - 10800000, amount: 12.8, channel: '微信', category: '餐饮', note: '早餐' }
   ],
   saving: {
     goal: 50000,
@@ -819,7 +819,7 @@ function addExpense() {
     </div>
     <input type="hidden" id="ef-cat-val" value="餐饮">
     <div class="form-row" style="margin-top:10px;">
-      <input class="input" id="ef-note" placeholder="备注 (选填, 如: 午餐 兰州拉面)">
+      <input class="input" id="ef-note" placeholder="备注 (选填, 如: 午餐/早餐/打车)">
       <input class="input" id="ef-date" type="date" value="${todayStr}" style="flex:0 0 45%;">
     </div>
     <div class="form-row" style="margin-top:8px;">
