@@ -653,6 +653,23 @@ function viewExpense() {
   const maxTrend = Math.max(...trend.map(t => t.total), 1);
   const trendMax = Math.round(maxTrend);
 
+  // 日历数据：当月每天消费汇总
+  const calYear = new Date().getFullYear();
+  const calMonth = new Date().getMonth();
+  const calToday = new Date().getDate();
+  const calDays = new Date(calYear, calMonth + 1, 0).getDate();
+  const calFirstDay = new Date(calYear, calMonth, 1).getDay(); // 0=周日
+  const calMap = {};
+  DATA.expenses.forEach(e => {
+    const d = new Date(e.time);
+    if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
+      const day = d.getDate();
+      calMap[day] = (calMap[day] || 0) + e.amount;
+    }
+  });
+  const calMax = Math.max(...Object.values(calMap), 1);
+  const calWeekDays = ['日','一','二','三','四','五','六'];
+
   // 渠道分布
   const channelMap = {};
   s.month.forEach(e => { channelMap[e.channel] = (channelMap[e.channel] || 0) + e.amount; });
@@ -699,6 +716,40 @@ function viewExpense() {
             <div style="font-size:11px; color:var(--text-2); font-weight:500;">${t.day}</div>
           </div>
         `).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="emoji">📅</span>
+        <span class="card-title">${calMonth + 1}月消费日历</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px; text-align:center;">
+        ${calWeekDays.map(d => `<div style="font-size:11px; color:var(--text-3); padding:4px 0; font-weight:600;">${d}</div>`).join('')}
+        ${Array(calFirstDay).fill('<div></div>').join('')}
+        ${Array.from({length: calDays}, (_, i) => {
+          const day = i + 1;
+          const amt = calMap[day] || 0;
+          const isToday = day === calToday;
+          const intensity = amt > 0 ? Math.min(1, amt / calMax) : 0;
+          const bg = amt > 0
+            ? `background:rgba(244,114,129,${0.12 + intensity * 0.5});`
+            : 'background:#FAFAFA;';
+          const textColor = amt > 0 ? 'color:var(--pink-700); font-weight:600;' : 'color:var(--text-3);';
+          const border = isToday ? 'border:1.5px solid var(--pink-500);' : 'border:1px solid transparent;';
+          return `<div style="border-radius:8px; padding:5px 2px; ${bg} ${border} min-height:48px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;">
+            <div style="font-size:12px; ${textColor} ${isToday ? 'font-weight:700;' : ''}">${day}</div>
+            ${amt > 0 ? `<div style="font-size:9px; ${textColor} line-height:1;">¥${amt.toFixed(0)}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px; margin-top:8px; font-size:10px; color:var(--text-3);">
+        <span>少</span>
+        <div style="width:14px; height:14px; border-radius:3px; background:rgba(244,114,129,0.12);"></div>
+        <div style="width:14px; height:14px; border-radius:3px; background:rgba(244,114,129,0.3);"></div>
+        <div style="width:14px; height:14px; border-radius:3px; background:rgba(244,114,129,0.5);"></div>
+        <div style="width:14px; height:14px; border-radius:3px; background:rgba(244,114,129,0.7);"></div>
+        <span>多</span>
       </div>
     </div>
 
